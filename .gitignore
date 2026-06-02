@@ -1,0 +1,9 @@
+# Dependency directories
+node_modules/
+
+# Secrets and environment files
+.env
+dont_steal.env
+
+# Local database (optional, but recommended so local testing doesn't overwrite production)
+data/watch_party.db
