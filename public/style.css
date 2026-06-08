@@ -1,0 +1,24 @@
+/* Base Tag Styling */
+.tag {
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    color: #11111b; /* Dark text for contrast */
+}
+
+/* Tier 1: Status */
+.tag.canon { background-color: #89b4fa; }
+.tag.mixed { background-color: #cba6f7; }
+.tag.filler { background-color: #f38ba8; }
+.tag.anime_canon { background-color: #94e2d5; }
+
+/* Tier 2: Focus */
+.tag.action { background-color: #fab387; }
+.tag.lore { background-color: #f9e2af; }
+.tag.backstory { background-color: #bac2de; }
+.tag.comedy { background-color: #a6e3a1; }
+
+/* Tier 3: Modifiers */
+.tag.climax { background-color: #eba0ac; color: white; }
+.tag.slow { background-color: #d2691e; color: white; }
