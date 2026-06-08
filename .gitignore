@@ -6,6 +6,6 @@ node_modules/
 dont_steal.env
 
 # Local database (optional, but recommended so local testing doesn't overwrite production)
-data/watch_party.db
+data/*
 
 .dockerignore
