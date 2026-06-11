@@ -12,42 +12,45 @@
     <div id="schedule-container">Loading schedule...</div>
 
     <script>
-        // Fetch data from our Express API
         fetch('/api/schedule')
             .then(response => response.json())
             .then(data => {
-                const container = document.getElementById('schedule-container');
-                container.innerHTML = ''; // Clear loading text
+                const timeline = document.getElementById('timeline');
+                timeline.innerHTML = '';
 
-                // Sort: watched first, then up_next, then future
-                const order = { 'watched': 1, 'up_next': 2, 'future': 3 };
-                data.sort((a, b) => order[a.status] - order[b.status]);
+                if (data.length === 0) {
+                    timeline.innerHTML = '<p>No episodes are currently planned. Check back later!</p>';
+                    return;
+                }
 
-                data.forEach(block => {
-                    // Create HTML for tags
-                    const tagsHtml = block.tags.map(tag => `<span class="tag">${tag}</span>`).join('');
+                data.forEach(item => {
+                    let parsedTags = [];
+                    try { parsedTags = JSON.parse(item.tags); } catch (e) { parsedTags = []; }
 
-                    // Format the status for display
-                    const statusText = block.status.replace('_', ' ');
+                    const tagsHtml = parsedTags.map(tag => {
+                        const cssClass = tag.toLowerCase().replace(' ', '_');
+                        return `<span class="tag ${cssClass}">${tag}</span>`;
+                    }).join('');
 
-                    // Build the card
-                    const card = `
-                        <div class="card ${block.status}">
-                            <div class="header">
-                                <h2 class="title">${block.title}</h2>
-                                <span class="badge ${block.status}">${statusText}</span>
-                            </div>
-                            <div class="tags">
-                                <span class="episodes">Episodes: <strong>${block.episodes}</strong></span> | ${tagsHtml}
-                            </div>
-                            <div class="synopsis">${block.synopsis}</div>
+                    // Show the winning date if scheduled, otherwise "TBD"
+                    const displayDate = item.watch_date ? item.watch_date : "Date TBD (Voting...)";
+
+                    const block = document.createElement('div');
+                    block.className = 'episode-block';
+                    block.innerHTML = `
+                        <div class="ep-info">
+                            <span class="ep-number">EP ${item.episode_number}</span>
+                            <span class="ep-week">| ${item.week_id}</span>
                         </div>
+                        <div class="ep-title">${item.title}</div>
+                        <div class="ep-date">📅 ${displayDate}</div>
+                        <div class="ep-tags">${tagsHtml}</div>
                     `;
-                    container.innerHTML += card;
+                    timeline.appendChild(block);
                 });
             })
             .catch(error => {
-                document.getElementById('schedule-container').innerHTML = 'Error loading schedule. Is the bot running?';
+                document.getElementById('timeline').innerHTML = '<p>Error loading schedule. Is the bot running?</p>';
             });
     </script>
 </body>
