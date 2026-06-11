@@ -12,9 +12,14 @@
   "type": "commonjs",
   "dependencies": {
     "better-sqlite3": "^12.10.0",
+    "csv-parser": "^3.2.1",
     "discord.js": "^14.26.4",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
-    "node-cron": "^4.2.1"
+    "node-cron": "^4.2.1",
+    "nodemailer": "^8.0.11"
+  },
+  "allowScripts": {
+    "better-sqlite3@12.10.0": true
   }
 }
