@@ -1,13 +1,14 @@
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '../.env') });
 const { Client, GatewayIntentBits, REST, Routes } = require('discord.js');
 const express = require('express');
 const cron = require('node-cron');
 const Database = require('better-sqlite3');
-const path = require('path');
 const nodemailer = require('nodemailer');
 
 // --- SETUP ---
-const db = new Database('../data/watch_party.db');
+const dbPath = path.join(__dirname, '../data/watch_party.db');
+const db = new Database(dbPath);
 const app = express();
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages] });
 
@@ -113,7 +114,7 @@ client.on('interactionCreate', async interaction => {
 });
 
 // --- WEB API ---
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, '../public')));
 
 app.get('/api/schedule', (req, res) => {
     // Limits the display to the next 50 episodes so it doesn't clutter the screen
@@ -121,9 +122,9 @@ app.get('/api/schedule', (req, res) => {
     res.json(episodes);
 });
 
-client.once('clientReady', () => {
+client.once('ready', () => {
     console.log(`Ready! Logged in as ${client.user.tag}`);
     app.listen(30388, () => console.log(`Web Dashboard running at http://localhost:30388`));
 });
 
-client.login(process.env.DISCORD_TOKEN);
+client.login(process.env.TOKEN);
