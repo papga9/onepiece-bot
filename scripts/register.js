@@ -5,7 +5,15 @@ const { REST, Routes } = require('discord.js');
 const commands = [
     {
         name: 'next',
-        description: 'Displays the upcoming One Piece watch block!',
+        description: 'Mark the currently scheduled One Piece week as watched.',
+    },
+    {
+        name: 'cancel',
+        description: 'Cancel the currently scheduled week and put it back in the queue.',
+    },
+    {
+        name: 'upcoming',
+        description: 'Check the schedule to see what episodes we are watching next!',
     }
 ];
 
