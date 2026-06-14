@@ -4,7 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>One Piece Watch Party</title>
-    <link rel="stylesheet" href="/style.css">
+
+    <script>
+        const cssLink = document.createElement("link");
+        cssLink.rel = "stylesheet";
+        cssLink.href = "/style.css?v=" + new Date().getTime();
+        document.head.appendChild(cssLink);
+    </script>
 </head>
 <body>
 
