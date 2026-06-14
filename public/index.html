@@ -12,46 +12,69 @@
     <div id="timeline">Loading schedule...</div>
 
     <script>
-        fetch('/api/schedule')
-            .then(response => response.json())
-            .then(data => {
+        async function loadSchedule() {
+            try {
+                const res = await fetch('/api/schedule');
+                const episodes = await res.json();
                 const timeline = document.getElementById('timeline');
                 timeline.innerHTML = '';
 
-                if (data.length === 0) {
-                    timeline.innerHTML = '<p>No episodes are currently planned. Check back later!</p>';
+                if (episodes.length === 0) {
+                    timeline.innerHTML = '<p>No episodes planned yet!</p>';
                     return;
                 }
 
-                data.forEach(item => {
-                    let parsedTags = [];
-                    try { parsedTags = JSON.parse(item.tags); } catch (e) { parsedTags = []; }
+                let currentWeek = '';
+                let currentWrapper = null;
+                let weekContainer = null;
 
-                    const tagsHtml = parsedTags.map(tag => {
-                        const cssClass = tag.toLowerCase().replace(' ', '_');
-                        return `<span class="tag ${cssClass}">${tag}</span>`;
-                    }).join('');
+                episodes.forEach(ep => {
+                    // Check if we have hit a new week batch
+                    if (ep.week_id !== currentWeek) {
+                        currentWeek = ep.week_id;
 
-                    // Show the winning date if scheduled, otherwise "TBD"
-                    const displayDate = item.watch_date ? item.watch_date : "Date TBD (Voting...)";
+                        // 1. Create the Master Wrapper Card for the week
+                        currentWrapper = document.createElement('div');
+                        currentWrapper.className = `week-wrapper wrapper-${ep.status}`;
 
-                    const block = document.createElement('div');
-                    block.className = 'episode-block';
-                    block.innerHTML = `
-                        <div class="ep-info">
-                            <span class="ep-number">EP ${item.episode_number}</span>
-                            <span class="ep-week">| ${item.week_id}</span>
+                        // 2. Create the Header
+                        const weekHeader = document.createElement('div');
+                        weekHeader.className = `week-header header-${ep.status}`;
+                        weekHeader.innerHTML = `
+                            <h2>🏴‍☠️ ${currentWeek}</h2>
+                            <div class="week-date">${ep.watch_date ? '📅 ' + ep.watch_date : '⏳ TBD'}</div>
+                        `;
+
+                        // 3. Create the inner container for the episodes
+                        weekContainer = document.createElement('div');
+                        weekContainer.className = 'week-container';
+
+                        // Assemble the pieces into the wrapper, then push it to the timeline
+                        currentWrapper.appendChild(weekHeader);
+                        currentWrapper.appendChild(weekContainer);
+                        timeline.appendChild(currentWrapper);
+                    }
+
+                    // 4. Create the episode card
+                    const el = document.createElement('div');
+                    el.className = `episode-card`;
+                    el.innerHTML = `
+                        <div class="ep-num">Ep ${ep.episode_number}</div>
+                        <div class="ep-details">
+                            <h3>${ep.title || 'Unknown Title'}</h3>
                         </div>
-                        <div class="ep-title">${item.title}</div>
-                        <div class="ep-date">📅 ${displayDate}</div>
-                        <div class="ep-tags">${tagsHtml}</div>
+                        <div class="ep-status tag-${ep.status}">${ep.status}</div>
                     `;
-                    timeline.appendChild(block);
+
+                    // Add the card to the current week's inner container
+                    weekContainer.appendChild(el);
                 });
-            })
-            .catch(error => {
+            } catch (err) {
                 document.getElementById('timeline').innerHTML = '<p>Error loading schedule. Is the bot running?</p>';
-            });
+            }
+        }
+
+        loadSchedule();
     </script>
 </body>
 </html>

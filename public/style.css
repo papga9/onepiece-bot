@@ -22,3 +22,109 @@
 /* Tier 3: Modifiers */
 .tag.climax { background-color: #eba0ac; color: white; }
 .tag.slow { background-color: #d2691e; color: white; }
+
+/* --- GRID LAYOUT --- */
+#timeline {
+display: grid;
+/* This creates automatic columns! They will be at least 350px wide, and fill the space */
+grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+gap: 30px; /* Massive negative space between batches */
+align-items: start; /* Prevents cards from stretching vertically */
+padding: 20px 0;
+}
+
+/* --- WEEK MASTER CARD --- */
+.week-wrapper {
+    background-color: #2b2d31; /* Brightened up the base gray so it isn't so dark */
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: transform 0.2s ease;
+}
+
+.week-wrapper:hover {
+    transform: translateY(-5px);
+}
+
+/* Gradients made much brighter (0.25 opacity) and pulled further down the card */
+.wrapper-watched { background: linear-gradient(180deg, rgba(67, 181, 129, 0.25) 0%, #2b2d31 150px); }
+.wrapper-scheduled { background: linear-gradient(180deg, rgba(250, 166, 26, 0.25) 0%, #2b2d31 150px); }
+.wrapper-planned { background: linear-gradient(180deg, rgba(114, 137, 218, 0.25) 0%, #2b2d31 150px); }
+
+/* --- BATCH HEADERS --- */
+.week-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    border-bottom: 3px solid #23272a;
+}
+
+.header-watched { border-bottom-color: #43b581; }
+.header-scheduled { border-bottom-color: #faa61a; }
+.header-planned { border-bottom-color: #7289da; }
+
+.week-header h2 {
+    margin: 0;
+    font-size: 1.3rem;
+    color: #ffffff;
+}
+
+.week-date {
+    font-weight: bold;
+    font-size: 0.9rem;
+    padding: 6px 12px;
+    border-radius: 20px;
+    background-color: rgba(0, 0, 0, 0.4);
+    color: #e3e5e8;
+}
+
+/* --- EPISODE LIST CONTAINER & RESTORED TAGS --- */
+.week-container {
+    padding: 15px;
+}
+
+.episode-card {
+    display: flex; /* Aligns the Ep Number, Title, and Tag horizontally */
+    align-items: center;
+    background-color: rgba(30, 31, 34, 0.6); /* Creates a nice inset-box look */
+    padding: 12px 15px;
+    border-radius: 8px;
+    margin-bottom: 12px;
+}
+
+.episode-card:last-child {
+    margin-bottom: 0;
+}
+
+.ep-num {
+    font-weight: 800;
+    color: #949ba4;
+    width: 60px; /* Keeps all the titles perfectly aligned in a column */
+}
+
+.ep-details {
+    flex-grow: 1; /* Pushes the tag to the far right */
+}
+
+.ep-details h3 {
+    margin: 0;
+    font-size: 0.95rem;
+    color: #dbdee1;
+}
+
+/* The Restored Tags! */
+.ep-status {
+    font-size: 0.75rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 20px;
+    letter-spacing: 0.5px;
+}
+
+/* Tag Colors */
+.tag-watched { background-color: rgba(67, 181, 129, 0.15); color: #43b581; }
+.tag-scheduled { background-color: rgba(250, 166, 26, 0.15); color: #faa61a; }
+.tag-planned { background-color: rgba(114, 137, 218, 0.15); color: #7289da; }
