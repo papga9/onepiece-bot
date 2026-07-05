@@ -1,3 +1,26 @@
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '../.env') });
+const { Client, GatewayIntentBits, REST, Routes, Events, MessageFlags } = require('discord.js');
+const express = require('express');
+const cron = require('node-cron');
+const Database = require('better-sqlite3');
+const nodemailer = require('nodemailer');
+
+// --- SETUP ---
+const dbPath = path.join(__dirname, '../data/watch_party.db');
+const db = new Database(dbPath);
+const app = express();
+const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages] });
+
+// Email Transporter
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+    }
+});
+
 // --- THE SUNDAY TRANSITION LOGIC ---
 async function executeSundayTransition() {
     console.log("Executing the Sunday Transition...");
@@ -94,3 +117,84 @@ async function executeSundayTransition() {
         await channel.send("⚠️ **System Alert:** There are no planned episodes in the database! Please update the schedule.").catch(e => console.error(e));
     }
 }
+
+// Set the automated clock to run the function every Sunday at noon
+cron.schedule('0 12 * * 0', executeSundayTransition);
+
+// --- SLASH COMMANDS ---
+client.on(Events.InteractionCreate, async interaction => {
+    if (!interaction.isChatInputCommand()) return;
+
+    const captainId = process.env.CAPTAIN_ID ? process.env.CAPTAIN_ID.trim() : "MISSING_ID";
+
+    // --- SECURITY CHECK ---
+    if (interaction.commandName !== 'upcoming' && interaction.user.id !== captainId) {
+        return await interaction.reply({
+            content: "❌ **Mutiny!** Only the Captain is authorized to alter the timeline.",
+            flags: MessageFlags.Ephemeral
+        });
+    }
+
+    if (interaction.commandName === 'forcepoll') {
+        await interaction.reply({ content: "⚙️ Captain override accepted! Forcing the Sunday Transition right now...", flags: MessageFlags.Ephemeral });
+        await executeSundayTransition();
+        return;
+    }
+
+    if (interaction.commandName === 'next') {
+        const scheduledWeek = db.prepare("SELECT week_id FROM episodes WHERE status = 'scheduled' LIMIT 1").get();
+
+        if (scheduledWeek) {
+            db.prepare("UPDATE episodes SET status = 'watched' WHERE week_id = ? AND status = 'scheduled'").run(scheduledWeek.week_id);
+            await interaction.reply(`✅ Marked **${scheduledWeek.week_id}** as watched! Web timeline updated.`);
+        } else {
+            await interaction.reply({ content: `There are no 'scheduled' episodes to mark as watched right now.`, flags: MessageFlags.Ephemeral });
+        }
+    }
+
+    if (interaction.commandName === 'cancel') {
+        const scheduledWeek = db.prepare("SELECT week_id FROM episodes WHERE status = 'scheduled' LIMIT 1").get();
+
+        if (scheduledWeek) {
+            db.prepare("UPDATE episodes SET status = 'planned', watch_date = NULL WHERE week_id = ? AND status = 'scheduled'").run(scheduledWeek.week_id);
+            await interaction.reply(`⏪ Cancelled **${scheduledWeek.week_id}**. It has been put back in the waiting room and will be polled again next Sunday.`);
+        } else {
+            await interaction.reply({ content: `There are no 'scheduled' episodes to cancel right now.`, flags: MessageFlags.Ephemeral });
+        }
+    }
+
+    if (interaction.commandName === 'upcoming') {
+        const scheduledEpisodes = db.prepare("SELECT * FROM episodes WHERE status = 'scheduled' ORDER BY episode_number ASC").all();
+
+        if (scheduledEpisodes.length > 0) {
+            const weekName = scheduledEpisodes[0].week_id;
+            const watchDate = scheduledEpisodes[0].watch_date;
+            const firstEp = scheduledEpisodes[0].episode_number;
+            const lastEp = scheduledEpisodes[scheduledEpisodes.length - 1].episode_number;
+
+            await interaction.reply(`📅 **Upcoming Watch Party:**\nWe are sailing through **${weekName}** (Episodes ${firstEp}-${lastEp}) on **${watchDate}**!`);
+        } else {
+            const plannedWeek = db.prepare("SELECT week_id FROM episodes WHERE status = 'planned' LIMIT 1").get();
+            if (plannedWeek) {
+                await interaction.reply(`⚓ Nothing is officially scheduled yet, but we are currently voting on **${plannedWeek.week_id}**! Check the active poll.`);
+            } else {
+                await interaction.reply(`🤷‍♂️ The schedule is completely empty right now. Tell the Captain to update the map!`);
+            }
+        }
+    }
+});
+
+// --- WEB API ---
+app.use(express.static(path.join(__dirname, '../public')));
+
+app.get('/api/schedule', (req, res) => {
+    const episodes = db.prepare("SELECT * FROM episodes WHERE status IN ('planned', 'scheduled') ORDER BY episode_number ASC LIMIT 50").all();
+    res.json(episodes);
+});
+
+client.once(Events.ClientReady, () => {
+    console.log(`Ready! Logged in as ${client.user.tag}`);
+    app.listen(30388, () => console.log(`Web Dashboard running at http://localhost:30388`));
+});
+
+client.login(process.env.TOKEN);
