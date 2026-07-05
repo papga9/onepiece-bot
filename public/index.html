@@ -61,6 +61,19 @@
                         timeline.appendChild(currentWrapper);
                     }
 
+                    // Parse the JSON array of tags safely from the database
+                    let tagsHtml = '';
+                    try {
+                        const tagsArray = JSON.parse(ep.tags || '[]');
+                        tagsArray.forEach(tag => {
+                            // Creates CSS safe classes (e.g., "Mixed Canon" -> "mixed-canon")
+                            const safeClass = tag.toLowerCase().replace(/\s+/g, '-');
+                            tagsHtml += `<span class="ep-tag tag-${safeClass}">${tag}</span>`;
+                        });
+                    } catch(e) {
+                        console.error("Could not parse tags for episode " + ep.episode_number);
+                    }
+
                     // 4. Create the episode card
                     const el = document.createElement('div');
                     el.className = `episode-card`;
@@ -68,8 +81,10 @@
                         <div class="ep-num">Ep ${ep.episode_number}</div>
                         <div class="ep-details">
                             <h3>${ep.title || 'Unknown Title'}</h3>
+                            <div class="tag-container">
+                                ${tagsHtml}
+                            </div>
                         </div>
-                        <div class="ep-status tag-${ep.status}">${ep.status}</div>
                     `;
 
                     // Add the card to the current week's inner container

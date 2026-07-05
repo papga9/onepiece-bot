@@ -114,17 +114,35 @@ padding: 20px 0;
     color: #dbdee1;
 }
 
-/* The Restored Tags! */
-.ep-status {
-    font-size: 0.75rem;
-    font-weight: bold;
-    text-transform: uppercase;
-    padding: 4px 10px;
-    border-radius: 20px;
-    letter-spacing: 0.5px;
+/* --- CONTENT TAGS --- */
+.tag-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px; /* Adds a nice gap between the episode title and the tags */
 }
 
-/* Tag Colors */
-.tag-watched { background-color: rgba(67, 181, 129, 0.15); color: #43b581; }
-.tag-scheduled { background-color: rgba(250, 166, 26, 0.15); color: #faa61a; }
-.tag-planned { background-color: rgba(114, 137, 218, 0.15); color: #7289da; }
+.ep-tag {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+    color: #ffffff;
+    background-color: #4f545c; /* Fallback gray */
+}
+
+/* Tier 1 (Status) */
+.tag-canon { background-color: #7289da; } /* Blurple */
+.tag-filler { background-color: #ed4245; } /* Red */
+.tag-mixed-canon { background-color: #faa61a; } /* Orange */
+.tag-anime-canon { background-color: #eb459e; } /* Pink */
+
+/* Tier 2 & 3 (Focus and Modifiers) */
+.tag-action { background-color: #d9704c; } /* Rust/Orange */
+.tag-lore { background-color: #43b581; } /* Green */
+.tag-comedy { background-color: #e6c229; color: #1e1f22; } /* Gold with dark text */
+.tag-backstory { background-color: #747f8d; } /* Slate */
+.tag-climax { background-color: #992d22; } /* Dark Red */
+.tag-recap { background-color: #2b2d31; border: 1px solid #4f545c; color: #b9bbbe; } /* Hollow Gray */
