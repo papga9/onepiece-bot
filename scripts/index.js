@@ -69,20 +69,32 @@ async function executeSundayTransition() {
     if (nextPlannedRow) {
         const nextWeekName = nextPlannedRow.week_id;
 
+        // --- NEW DATE GENERATOR LOGIC ---
+        const today = new Date();
+        const getDateString = (daysToAdd) => {
+            const targetDate = new Date(today);
+            targetDate.setDate(today.getDate() + daysToAdd);
+
+            // Format to "MM.DD." (e.g., 07.13.)
+            const month = String(targetDate.getMonth() + 1).padStart(2, '0');
+            const day = String(targetDate.getDate()).padStart(2, '0');
+            return `${month}.${day}.`;
+        };
+
         try {
-            // YOUR HUNGARIAN POLL
+            // YOUR HUNGARIAN POLL (Now with dynamic dates!)
             const newPollMessage = await channel.send({
                 content: `Új hét közeleg! 🏴‍☠️ Mikor gyűlünk össze egy darabra? **${nextWeekName}**?`,
                 poll: {
                     question: { text: "Melyik nap lenne jó?" },
                     answers: [
-                        { text: "Hétfő", emoji: "🥱" },
-                        { text: "Kedd", emoji: "🌮" },
-                        { text: "Szerda", emoji: "🐪" },
-                        { text: "Csütörtök", emoji: "🍺" },
-                        { text: "Péntek", emoji: "🍻" },
-                        { text: "Szombat", emoji: "🍿" },
-                        { text: "Vasárnap", emoji: "⚓" },
+                        { text: `Hétfő (${getDateString(8)})`, emoji: "🥱" },
+                        { text: `Kedd (${getDateString(9)})`, emoji: "🌮" },
+                        { text: `Szerda (${getDateString(10)})`, emoji: "🐪" },
+                        { text: `Csütörtök (${getDateString(11)})`, emoji: "🍺"},
+                        { text: `Péntek (${getDateString(12)})`, emoji: "🍻" },
+                        { text: `Szombat (${getDateString(13)})`, emoji: "🍿" },
+                        { text: `Vasárnap (${getDateString(14)})`, emoji: "⚓" },
                         { text: "Nézzünk többször", emoji: "📅" },
                         { text: "Most hagyjuk ki", emoji: "🛌" }
                     ],
