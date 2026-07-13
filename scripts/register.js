@@ -4,9 +4,10 @@ const { REST, Routes } = require('discord.js');
 // Define our command
 const commands = [
     { name: 'next', description: 'Mark the currently scheduled One Piece week as watched.' },
-{ name: 'cancel', description: 'Cancel the currently scheduled week and put it back in the queue.' },
-{ name: 'upcoming', description: 'Check the schedule to see what episodes we are watching next!' },
-{ name: 'forcepoll', description: 'Manually trigger the Sunday poll (Captain only).' }
+    { name: 'cancel', description: 'Cancel the currently scheduled week and put it back in the queue.' },
+    { name: 'upcoming', description: 'Check the schedule to see what episodes we are watching next!' },
+    { name: 'forcepoll', description: 'Manually trigger the Sunday poll (Captain only).' },
+    { name: 'translate', description: 'Auto-translate all Japanese episode titles in the database (Captain only).' }
 ];
 
 const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);

@@ -207,6 +207,46 @@ client.on(Events.InteractionCreate, async interaction => {
             }
         }
     }
+
+    // --- NEW AUTO-TRANSLATE COMMAND ---
+    if (interaction.commandName === 'translate') {
+        // Acknowledge immediately because translating takes time
+        await interaction.reply({ content: "⏳ Booting up the translator... This might take a minute!", flags: MessageFlags.Ephemeral });
+
+        // Grab every episode from the database
+        const episodes = db.prepare("SELECT episode_number, title FROM episodes").all();
+        let successCount = 0;
+
+        for (const ep of episodes) {
+            // Skip empty titles
+            if (!ep.title) continue;
+
+            try {
+                // Ping Google's free, hidden translation API
+                // sl=ja (Source Language: Japanese) | tl=hu (Target Language: Hungarian)
+                const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=ja&tl=en&dt=t&q=${encodeURIComponent(ep.title)}`;
+
+                const response = await fetch(url);
+                const data = await response.json();
+
+                // Extract the translated text
+                const translatedText = data[0][0][0];
+
+                // Update the database permanently
+                db.prepare("UPDATE episodes SET title = ? WHERE episode_number = ?").run(translatedText, ep.episode_number);
+                successCount++;
+
+                // Wait half a second between translations so Google doesn't block the bot
+                await new Promise(resolve => setTimeout(resolve, 500));
+
+            } catch (err) {
+                console.error(`Failed to translate episode ${ep.episode_number}:`, err);
+            }
+        }
+
+        await interaction.followUp({ content: `✅ Translation complete! Successfully translated **${successCount}** episode titles. Refresh your webpage!`, flags: MessageFlags.Ephemeral });
+        return;
+    }
 });
 
 // --- WEB API ---
