@@ -69,6 +69,31 @@ async function executeSundayTransition() {
     if (nextPlannedRow) {
         const nextWeekName = nextPlannedRow.week_id;
 
+        // --- NEW DATE GENERATOR LOGIC ---
+        const today = new Date();
+        const getDateString = (daysToAdd) => {
+            const targetDate = new Date(today);
+            targetDate.setDate(today.getDate() + daysToAdd);
+
+            const month = String(targetDate.getMonth() + 1).padStart(2, '0');
+            const day = String(targetDate.getDate()).padStart(2, '0');
+            return `${month}.${day}.`;
+        };
+
+        // --- NEW EMOJI RANDOMIZER ---
+        const emojis = {
+            monday: ['☕', '💻', '⏰', '🥱', '🫠'],
+            tuesday: ['📈', '📝', '😐', '🏃‍♂️'],
+            wednesday: ['🐫', '📊', '🤠', '🧗'],
+            thursday: ['⏳', '📥', '😏', '🍹'],
+            friday: ['🔓', '🥳', '🎉', '💃', '🍻'],
+            saturday: ['💤', '🛒', '🍕', '🌲', '🎮'],
+            sunday: ['🥞', '🧺', '☀️', '🧘', '😰']
+        };
+
+        // Helper function to pick a random item from any array
+        const getRandom = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
         try {
             // YOUR HUNGARIAN POLL
             const newPollMessage = await channel.send({
@@ -76,13 +101,13 @@ async function executeSundayTransition() {
                 poll: {
                     question: { text: "Melyik nap lenne jó?" },
                     answers: [
-                        { text: "Hétfő", emoji: "🥱" },
-                        { text: "Kedd", emoji: "🌮" },
-                        { text: "Szerda", emoji: "🐪" },
-                        { text: "Csütörtök", emoji: "🍺" },
-                        { text: "Péntek", emoji: "🍻" },
-                        { text: "Szombat", emoji: "🍿" },
-                        { text: "Vasárnap", emoji: "⚓" },
+                        { text: `Hétfő (${getDateString(8)})`, emoji: getRandom(emojis.monday) },
+                        { text: `Kedd (${getDateString(9)})`, emoji: getRandom(emojis.tuesday) },
+                        { text: `Szerda (${getDateString(10)})`, emoji: getRandom(emojis.wednesday) },
+                        { text: `Csütörtök (${getDateString(11)})`, emoji: getRandom(emojis.thursday) },
+                        { text: `Péntek (${getDateString(12)})`, emoji: getRandom(emojis.friday) },
+                        { text: `Szombat (${getDateString(13)})`, emoji: getRandom(emojis.saturday) },
+                        { text: `Vasárnap (${getDateString(14)})`, emoji: getRandom(emojis.sunday) },
                         { text: "Nézzünk többször", emoji: "📅" },
                         { text: "Most hagyjuk ki", emoji: "🛌" }
                     ],
