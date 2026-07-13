@@ -208,43 +208,47 @@ client.on(Events.InteractionCreate, async interaction => {
         }
     }
 
-    // --- NEW AUTO-TRANSLATE COMMAND ---
+    // --- NEW AUTO-TRANSLATE COMMAND (ENGLISH) ---
     if (interaction.commandName === 'translate') {
-        // Acknowledge immediately because translating takes time
-        await interaction.reply({ content: "⏳ Booting up the translator... This might take a minute!", flags: MessageFlags.Ephemeral });
+        // Acknowledge immediately so Discord doesn't show "Thinking..." forever
+        await interaction.reply({ content: "⏳ Booting up the English translator... This will take about 35 minutes to avoid Google's rate limits. I will post a message in this channel when it is completely done!", flags: MessageFlags.Ephemeral });
 
-        // Grab every episode from the database
-        const episodes = db.prepare("SELECT episode_number, title FROM episodes").all();
+        const episodes = db.prepare("SELECT episode_number, title FROM episodes ORDER BY episode_number ASC").all();
         let successCount = 0;
 
         for (const ep of episodes) {
-            // Skip empty titles
             if (!ep.title) continue;
 
             try {
-                // Ping Google's free, hidden translation API
-                // sl=ja (Source Language: Japanese) | tl=hu (Target Language: Hungarian)
+                // Changed tl=hu to tl=en for English translations
                 const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=ja&tl=en&dt=t&q=${encodeURIComponent(ep.title)}`;
-
                 const response = await fetch(url);
-                const data = await response.json();
 
-                // Extract the translated text
+                // SAFETY NET: If Google blocks us, stop safely
+                if (!response.ok) {
+                    console.error(`Google API blocked the request at episode ${ep.episode_number} with status: ${response.status}`);
+                    // Use channel.send instead of followUp to avoid the 15-minute expiration crash!
+                    await interaction.channel.send(`⚠️ Google hit us with a rate limit at **Episode ${ep.episode_number}**! Translated ${successCount} titles to English so far. Run the command again later.`);
+                    return;
+                }
+
+                const data = await response.json();
                 const translatedText = data[0][0][0];
 
                 // Update the database permanently
                 db.prepare("UPDATE episodes SET title = ? WHERE episode_number = ?").run(translatedText, ep.episode_number);
                 successCount++;
 
-                // Wait half a second between translations so Google doesn't block the bot
-                await new Promise(resolve => setTimeout(resolve, 500));
+                // Wait 2 full seconds to bypass anti-bot protection
+                await new Promise(resolve => setTimeout(resolve, 2000));
 
             } catch (err) {
                 console.error(`Failed to translate episode ${ep.episode_number}:`, err);
             }
         }
 
-        await interaction.followUp({ content: `✅ Translation complete! Successfully translated **${successCount}** episode titles. Refresh your webpage!`, flags: MessageFlags.Ephemeral });
+        // Send a brand new message to the channel instead of replying to the expired interaction
+        await interaction.channel.send(`✅ Translation pass complete! Successfully translated **${successCount}** episodes to English. Refresh your webpage!`);
         return;
     }
 });
