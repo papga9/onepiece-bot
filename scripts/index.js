@@ -208,48 +208,46 @@ client.on(Events.InteractionCreate, async interaction => {
         }
     }
 
-    // --- NEW AUTO-TRANSLATE COMMAND (ENGLISH) ---
+    // --- NEW ENGLISH TITLE COMMAND (USING TVMAZE API) ---
     if (interaction.commandName === 'translate') {
-        // Acknowledge immediately so Discord doesn't show "Thinking..." forever
-        await interaction.reply({ content: "⏳ Booting up the English translator... This will take about 35 minutes to avoid Google's rate limits. I will post a message in this channel when it is completely done!", flags: MessageFlags.Ephemeral });
+        // Acknowledge immediately
+        await interaction.reply({ content: "⏳ Booting up the Anime Database... This will only take a second!", flags: MessageFlags.Ephemeral });
 
-        const episodes = db.prepare("SELECT episode_number, title FROM episodes ORDER BY episode_number ASC").all();
-        let successCount = 0;
+        try {
+            // TVMaze ID for One Piece is 1505. This gets EVERY regular episode in one single request!
+            const url = `https://api.tvmaze.com/shows/1505/episodes`;
+            const response = await fetch(url);
 
-        for (const ep of episodes) {
-            if (!ep.title) continue;
-
-            try {
-                // Changed tl=hu to tl=en for English translations
-                const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=ja&tl=en&dt=t&q=${encodeURIComponent(ep.title)}`;
-                const response = await fetch(url);
-
-                // SAFETY NET: If Google blocks us, stop safely
-                if (!response.ok) {
-                    console.error(`Google API blocked the request at episode ${ep.episode_number} with status: ${response.status}`);
-                    // Use channel.send instead of followUp to avoid the 15-minute expiration crash!
-                    await interaction.channel.send(`⚠️ Google hit us with a rate limit at **Episode ${ep.episode_number}**! Translated ${successCount} titles to English so far. Run the command again later.`);
-                    return;
-                }
-
-                const data = await response.json();
-                const translatedText = data[0][0][0];
-
-                // Update the database permanently
-                db.prepare("UPDATE episodes SET title = ? WHERE episode_number = ?").run(translatedText, ep.episode_number);
-                successCount++;
-
-                // Wait 2 full seconds to bypass anti-bot protection
-                await new Promise(resolve => setTimeout(resolve, 2000));
-
-            } catch (err) {
-                console.error(`Failed to translate episode ${ep.episode_number}:`, err);
+            if (!response.ok) {
+                await interaction.channel.send(`⚠️ Failed to contact TVMaze API. Status: ${response.status}`);
+                return;
             }
-        }
 
-        // Send a brand new message to the channel instead of replying to the expired interaction
-        await interaction.channel.send(`✅ Translation pass complete! Successfully translated **${successCount}** episodes to English. Refresh your webpage!`);
-        return;
+            const tvmazeEpisodes = await response.json();
+
+            // Get all episodes from our database
+            const episodes = db.prepare("SELECT episode_number FROM episodes ORDER BY episode_number ASC").all();
+            let successCount = 0;
+
+            for (const ep of episodes) {
+                // TVMaze returns a perfectly ordered array of episodes (excluding movies/specials).
+                // Array index 0 = Episode 1, index 394 = Episode 395, etc.
+                const tvEp = tvmazeEpisodes[ep.episode_number - 1];
+
+                if (tvEp && tvEp.name) {
+                    // Overwrite the database with the official English title
+                    db.prepare("UPDATE episodes SET title = ? WHERE episode_number = ?").run(tvEp.name, ep.episode_number);
+                    successCount++;
+                }
+            }
+
+            await interaction.channel.send(`✅ Complete! Successfully pulled **${successCount}** official English titles from TVMaze in one go. Refresh your webpage!`);
+            return;
+
+        } catch (err) {
+            console.error(`TVMaze fetch failed:`, err);
+            await interaction.channel.send(`⚠️ An error occurred while fetching the episodes.`);
+        }
     }
 });
 
