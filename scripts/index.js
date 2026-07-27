@@ -33,12 +33,16 @@ async function executeSundayTransition() {
         return;
     }
 
+    // Format the role ping if the ID exists in the .env file
+    const rolePing = process.env.PIRATE_ROLE_ID ? `<@&${process.env.PIRATE_ROLE_ID}> ` : '';
+
     // PART 1: Tally Last Week's Poll
     const oldPollRow = db.prepare("SELECT value FROM settings WHERE key = 'active_poll_id'").get();
 
     if (oldPollRow && oldPollRow.value) {
         try {
-            const oldMessage = await channel.messages.fetch(oldPollRow.value);
+            // THE CACHE FIX: Force Discord to fetch the live message data, bypassing memory!
+            const oldMessage = await channel.messages.fetch({ message: oldPollRow.value, force: true });
             if (oldMessage.poll) {
                 let winningAnswer = "No votes cast";
                 let maxVotes = 0;
@@ -54,8 +58,8 @@ async function executeSundayTransition() {
 
                 if (plannedWeekRow) {
                     db.prepare("UPDATE episodes SET watch_date = ?, status = 'scheduled' WHERE week_id = ? AND status = 'planned'").run(winningAnswer, plannedWeekRow.week_id);
-                    // Safe send for the tally
-                    await channel.send(`A szavazatok beérkeztek! A következő időpont: **${winningAnswer}**!`).catch(e => console.error("Failed to send tally message:", e));
+                    // PING THE ROLE FOR THE TALLY
+                    await channel.send(`${rolePing}A szavazatok beérkeztek! A következő időpont: **${winningAnswer}**!`).catch(e => console.error("Failed to send tally message:", e));
                 }
             }
         } catch (err) {
@@ -69,7 +73,7 @@ async function executeSundayTransition() {
     if (nextPlannedRow) {
         const nextWeekName = nextPlannedRow.week_id;
 
-        // --- NEW DATE GENERATOR LOGIC ---
+        // --- DATE GENERATOR LOGIC ---
         const today = new Date();
         const getDateString = (daysToAdd) => {
             const targetDate = new Date(today);
@@ -80,7 +84,7 @@ async function executeSundayTransition() {
             return `${month}.${day}.`;
         };
 
-        // --- NEW EMOJI RANDOMIZER ---
+        // --- EMOJI RANDOMIZER ---
         const emojis = {
             monday: ['☕', '💻', '⏰', '🥱', '🫠'],
             tuesday: ['📈', '📝', '😐', '🏃‍♂️'],
@@ -91,11 +95,9 @@ async function executeSundayTransition() {
             sunday: ['🥞', '🧺', '☀️', '🧘', '😰']
         };
 
-        // Helper function to pick a random item from any array
         const getRandom = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
         try {
-            // YOUR HUNGARIAN POLL
             const newPollMessage = await channel.send({
                 content: `Új hét közeleg! 🏴‍☠️ Mikor gyűlünk össze egy darabra? **${nextWeekName}**?`,
                 poll: {
@@ -116,11 +118,10 @@ async function executeSundayTransition() {
                 }
             });
 
-            // Save new poll ID ONLY if the message actually sent successfully
             db.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('active_poll_id', ?)").run(newPollMessage.id);
 
         } catch (err) {
-            console.error("CRITICAL: Failed to send the new poll! Does the bot have 'Send Messages' and 'Create Polls' permissions?", err);
+            console.error("CRITICAL: Failed to send the new poll!", err);
         }
 
         // PART 3: Inventory Check (Email Alert)
@@ -143,8 +144,25 @@ async function executeSundayTransition() {
     }
 }
 
-// Set the automated clock to run the function every Sunday at noon
+// --- SATURDAY REMINDER LOGIC ---
+async function executeSaturdayReminder() {
+    console.log("Executing the Saturday Reminder...");
+    try {
+        const channel = await client.channels.fetch(process.env.WATCH_CHANNEL_ID);
+        const rolePing = process.env.PIRATE_ROLE_ID ? `<@&${process.env.PIRATE_ROLE_ID}> ` : '';
+
+        await channel.send(`${rolePing}🏴‍☠️ **Figyelem Szalmakalaposok!** Holnap délben zárul a szavazás! Aki még nem tette meg, adja le a voksát a következő részre!`);
+    } catch (err) {
+        console.error("Failed to send Saturday reminder:", err);
+    }
+}
+
+// --- SCHEDULED TASKS ---
+// Run the transition every Sunday at noon (Day 0)
 cron.schedule('0 12 * * 0', executeSundayTransition);
+
+// Run the reminder every Saturday at noon (Day 6)
+cron.schedule('0 12 * * 6', executeSaturdayReminder);
 
 // --- SLASH COMMANDS ---
 client.on(Events.InteractionCreate, async interaction => {
