@@ -46,13 +46,27 @@ async function executeSundayTransition() {
             if (oldMessage.poll) {
                 let winningAnswer = "No votes cast";
                 let maxVotes = 0;
+                let drawDays = [];
 
-                oldMessage.poll.answers.forEach(answer => {
-                    if (answer.voteCount > maxVotes) {
-                        maxVotes = answer.voteCount;
-                        winningAnswer = answer.text;
+            oldMessage.poll.answers.forEach(answer => {
+                if (answer.voteCount > maxVotes) {
+                    maxVotes = answer.voteCount;
+                    winningAnswer = answer.text;
+                    drawDays = [answer.text];
+                } else if (answer.voteCount === maxVotes) {
+                    drawDays.push(answer.text);
+                }
+            });
+
+            if (drawDays.length > 1) {
+                const priorityOrder = ['Wednesday', 'Tuesday', 'Thursday', 'Monday', 'Friday', 'Saturday', 'Sunday'];
+                for (const day of priorityOrder) {
+                    if (drawDays.includes(day)) {
+                        winningAnswer = day;
+                        break;
                     }
-                });
+                }
+            }
 
                 const plannedWeekRow = db.prepare("SELECT week_id FROM episodes WHERE status = 'planned' ORDER BY episode_number ASC LIMIT 1").get();
 
