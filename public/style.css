@@ -1,62 +1,106 @@
-/* Base Tag Styling */
-.tag {
-    padding: 3px 8px;
-    border-radius: 12px;
-    font-size: 0.8rem;
-    font-weight: bold;
-    color: #11111b; /* Dark text for contrast */
+/* --- GLOBAL BASE & RESET --- */
+*, *::before, *::after {
+    box-sizing: border-box;
 }
 
-/* Tier 1: Status */
-.tag.canon { background-color: #89b4fa; }
-.tag.mixed { background-color: #cba6f7; }
-.tag.filler { background-color: #f38ba8; }
-.tag.anime_canon { background-color: #94e2d5; }
+body {
+    margin: 0;
+    padding: 30px 24px;
+    background-color: #1e1f22; /* Deep Discord dark background */
+    color: #dbdee1;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.4;
+}
 
-/* Tier 2: Focus */
-.tag.action { background-color: #fab387; }
-.tag.lore { background-color: #f9e2af; }
-.tag.backstory { background-color: #bac2de; }
-.tag.comedy { background-color: #a6e3a1; }
+h1 {
+    text-align: center;
+    color: #ffffff;
+    font-size: 2rem;
+    margin: 0 0 20px 0;
+    letter-spacing: -0.5px;
+}
 
-/* Tier 3: Modifiers */
-.tag.climax { background-color: #eba0ac; color: white; }
-.tag.slow { background-color: #d2691e; color: white; }
+/* --- FILTER / CONTROLS BAR --- */
+.controls {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 24px;
+}
+
+#toggle-watched {
+    padding: 8px 16px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: #2b2d31;
+    color: #dbdee1;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+}
+
+#toggle-watched:hover {
+    background-color: #35373c;
+    transform: translateY(-2px);
+}
+
+#toggle-watched.active {
+    background-color: rgba(67, 181, 129, 0.2);
+    border-color: #43b581;
+    color: #ffffff;
+}
 
 /* --- GRID LAYOUT --- */
 #timeline {
-display: grid;
-/* This creates automatic columns! They will be at least 350px wide, and fill the space */
-grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-gap: 30px; /* Massive negative space between batches */
-align-items: start; /* Prevents cards from stretching vertically */
-padding: 20px 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr));
+    gap: 28px;
+    align-items: start;
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 10px 0 40px 0;
 }
 
 /* --- WEEK MASTER CARD --- */
 .week-wrapper {
-    background-color: #2b2d31; /* Brightened up the base gray so it isn't so dark */
+    background-color: #2b2d31;
     border-radius: 12px;
     overflow: hidden;
     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    transition: transform 0.2s ease;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
 }
 
 .week-wrapper:hover {
-    transform: translateY(-5px);
+    transform: translateY(-4px);
+    box-shadow: 0 14px 26px rgba(0, 0, 0, 0.5);
 }
 
-/* Gradients made much brighter (0.25 opacity) and pulled further down the card */
-.wrapper-watched { background: linear-gradient(180deg, rgba(67, 181, 129, 0.25) 0%, #2b2d31 150px); }
-.wrapper-scheduled { background: linear-gradient(180deg, rgba(250, 166, 26, 0.25) 0%, #2b2d31 150px); }
-.wrapper-planned { background: linear-gradient(180deg, rgba(114, 137, 218, 0.25) 0%, #2b2d31 150px); }
+.wrapper-watched {
+    background: linear-gradient(180deg, rgba(67, 181, 129, 0.22) 0%, #2b2d31 150px);
+    opacity: 0.75;
+}
+
+.wrapper-watched:hover {
+    opacity: 1;
+}
+
+.wrapper-scheduled {
+    background: linear-gradient(180deg, rgba(250, 166, 26, 0.25) 0%, #2b2d31 150px);
+    border-color: rgba(250, 166, 26, 0.3); /* Subtle highlight for the active upcoming week */
+}
+
+.wrapper-planned {
+    background: linear-gradient(180deg, rgba(114, 137, 218, 0.22) 0%, #2b2d31 150px);
+}
 
 /* --- BATCH HEADERS --- */
 .week-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 12px;
     padding: 15px 20px;
     border-bottom: 3px solid #23272a;
 }
@@ -67,51 +111,62 @@ padding: 20px 0;
 
 .week-header h2 {
     margin: 0;
-    font-size: 1.3rem;
+    font-size: 1.25rem;
     color: #ffffff;
 }
 
 .week-date {
-    font-weight: bold;
-    font-size: 0.9rem;
-    padding: 6px 12px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    padding: 5px 12px;
     border-radius: 20px;
-    background-color: rgba(0, 0, 0, 0.4);
+    background-color: rgba(0, 0, 0, 0.45);
     color: #e3e5e8;
+    white-space: nowrap;
 }
 
-/* --- EPISODE LIST CONTAINER & RESTORED TAGS --- */
+/* --- EPISODE LIST CONTAINER --- */
 .week-container {
     padding: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px; /* Cleaner spacing than margin-bottom + :last-child */
 }
 
 .episode-card {
-    display: flex; /* Aligns the Ep Number, Title, and Tag horizontally */
-    align-items: center;
-    background-color: rgba(30, 31, 34, 0.6); /* Creates a nice inset-box look */
+    display: flex;
+    align-items: flex-start; /* Aligns Ep number with top of multi-line titles */
+    gap: 12px;
+    background-color: rgba(30, 31, 34, 0.65);
     padding: 12px 15px;
     border-radius: 8px;
-    margin-bottom: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    transition: background-color 0.15s ease;
 }
 
-.episode-card:last-child {
-    margin-bottom: 0;
+.episode-card:hover {
+    background-color: rgba(30, 31, 34, 0.9);
 }
 
 .ep-num {
     font-weight: 800;
+    font-size: 0.9rem;
     color: #949ba4;
-    width: 60px; /* Keeps all the titles perfectly aligned in a column */
+    min-width: 68px; /* Fits 4-digit "Ep 1000+" cleanly */
+    flex-shrink: 0;
+    padding-top: 1px;
 }
 
 .ep-details {
-    flex-grow: 1; /* Pushes the tag to the far right */
+    flex-grow: 1;
+    min-width: 0; /* Prevents long unbroken strings from blowing out flex container */
 }
 
 .ep-details h3 {
     margin: 0;
     font-size: 0.95rem;
-    color: #dbdee1;
+    font-weight: 600;
+    color: #f2f3f5;
 }
 
 /* --- CONTENT TAGS --- */
@@ -119,7 +174,11 @@ padding: 20px 0;
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
-    margin-top: 8px; /* Adds a nice gap between the episode title and the tags */
+    margin-top: 8px;
+}
+
+.tag-container:empty {
+    display: none; /* Hides the 8px top margin if an episode has no tags */
 }
 
 .ep-tag {
@@ -130,19 +189,20 @@ padding: 20px 0;
     border-radius: 4px;
     letter-spacing: 0.5px;
     color: #ffffff;
-    background-color: #4f545c; /* Fallback gray */
+    background-color: #4f545c;
 }
 
 /* Tier 1 (Status) */
-.tag-canon { background-color: #7289da; } /* Blurple */
-.tag-filler { background-color: #ed4245; } /* Red */
-.tag-mixed-canon { background-color: #faa61a; } /* Orange */
-.tag-anime-canon { background-color: #eb459e; } /* Pink */
+.tag-canon { background-color: #7289da; }
+.tag-filler { background-color: #ed4245; }
+.tag-mixed-canon, .tag-mixed { background-color: #faa61a; color: #11111b; }
+.tag-anime-canon, .tag-anime_canon { background-color: #eb459e; }
 
 /* Tier 2 & 3 (Focus and Modifiers) */
-.tag-action { background-color: #d9704c; } /* Rust/Orange */
-.tag-lore { background-color: #43b581; } /* Green */
-.tag-comedy { background-color: #e6c229; color: #1e1f22; } /* Gold with dark text */
-.tag-backstory { background-color: #747f8d; } /* Slate */
-.tag-climax { background-color: #992d22; } /* Dark Red */
-.tag-recap { background-color: #2b2d31; border: 1px solid #4f545c; color: #b9bbbe; } /* Hollow Gray */
+.tag-action { background-color: #d9704c; }
+.tag-lore { background-color: #43b581; color: #11111b; }
+.tag-comedy { background-color: #e6c229; color: #11111b; }
+.tag-backstory { background-color: #747f8d; }
+.tag-climax { background-color: #992d22; }
+.tag-slow { background-color: #d2691e; }
+.tag-recap { background-color: #2b2d31; border: 1px solid #4f545c; color: #b9bbbe; }
