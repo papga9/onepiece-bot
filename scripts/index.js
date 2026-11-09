@@ -287,7 +287,7 @@ client.on(Events.InteractionCreate, async interaction => {
 app.use(express.static(path.join(__dirname, '../public')));
 
 app.get('/api/schedule', (req, res) => {
-    const episodes = db.prepare("SELECT * FROM episodes WHERE status IN ('planned', 'scheduled') ORDER BY episode_number ASC LIMIT 50").all();
+    const episodes = db.prepare("SELECT * FROM episodes WHERE status IN ('planned', 'scheduled') ORDER BY episode_number ASC").all();
     res.json(episodes);
 });
 
