@@ -4,6 +4,7 @@ node_modules/
 # Secrets and environment files
 .env
 dont_steal.env
+bot_token
 
 # Local database (optional, but recommended so local testing doesn't overwrite production)
 data/*
