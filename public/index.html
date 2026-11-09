@@ -13,164 +13,88 @@
     </script>
 </head>
 <body>
-<script>
-    async function loadSchedule() {
-        try {
-            const res = await fetch('/api/schedule');
-            const episodes = await res.json();
-            const timeline = document.getElementById('timeline');
-            timeline.innerHTML = '';
-
-            if (episodes.length === 0) {
-                timeline.innerHTML = '<p>No episodes planned yet!</p>';
-                return;
-            }
-
-            let currentWeek = '';
-            let currentWrapper = null;
-            let weekContainer = null;
-
-            episodes.forEach(ep => {
-                // Check if we have hit a new week batch
-                if (ep.week_id !== currentWeek) {
-                    currentWeek = ep.week_id;
-
-                    // 1. Create the Master Wrapper Card for the week
-                    currentWrapper = document.createElement('div');
-                    currentWrapper.className = `week-wrapper wrapper-${ep.status}`;
-
-                    // 2. Create the Header
-                    const weekHeader = document.createElement('div');
-                    weekHeader.className = `week-header header-${ep.status}`;
-                    weekHeader.innerHTML = `
-                        <h2>🏴‍☠️ ${currentWeek}</h2>
-                        <div class="week-date">${ep.watch_date ? '📅 ' + ep.watch_date : '⏳ TBD'}</div>
-                    `;
-
-                    // 3. Create the inner container for the episodes
-                    weekContainer = document.createElement('div');
-                    weekContainer.className = 'week-container';
-
-                    // Assemble the pieces into the wrapper, then push it to the timeline
-                    currentWrapper.appendChild(weekHeader);
-                    currentWrapper.appendChild(weekContainer);
-                    timeline.appendChild(currentWrapper);
-                }
-
-                // Parse the JSON array of tags safely from the database
-                let tagsHtml = '';
-                try {
-                    const tagsArray = JSON.parse(ep.tags || '[]');
-                    tagsArray.forEach(tag => {
-                        // Creates CSS safe classes (e.g., "Mixed Canon" -> "mixed-canon")
-                        const safeClass = tag.toLowerCase().replace(/\s+/g, '-');
-                        tagsHtml += `<span class="ep-tag tag-${safeClass}">${tag}</span>`;
-                    });
-                } catch(e) {
-                    console.error("Could not parse tags for episode " + ep.episode_number);
-                }
-
-                // 4. Create the episode card
-                const el = document.createElement('div');
-                el.className = `episode-card`;
-                el.innerHTML = `
-                    <div class="ep-num">Ep ${ep.episode_number}</div>
-                    <div class="ep-details">
-                        <h3>${ep.title || 'Unknown Title'}</h3>
-                        <div class="tag-container">
-                            ${tagsHtml}
-                        </div>
-                    </div>
-                `;
-
-                // Add the card to the current week's inner container
-                weekContainer.appendChild(el);
-            });
-        } catch (err) {
-            document.getElementById('timeline').innerHTML = '<p>Error loading schedule. Is the bot running?</p>';
-        }
-    }
-
-    loadSchedule();
-</script>
     <h1>🏴‍☠️ One Piece Watch Hub</h1>
-    <div id="timeline">Loading schedule...</div>
-    
+    <div id="timeline">
+        <p>Loading schedule...</p>
+    </div>
+
     <script>
         async function loadSchedule() {
+            const timeline = document.getElementById('timeline');
             try {
                 const res = await fetch('/api/schedule');
                 const episodes = await res.json();
-                const timeline = document.getElementById('timeline');
                 timeline.innerHTML = '';
 
-                if (episodes.length === 0) {
+                if (!episodes || episodes.length === 0) {
                     timeline.innerHTML = '<p>No episodes planned yet!</p>';
                     return;
                 }
 
-                let currentWeek = '';
-                let currentWrapper = null;
-                let weekContainer = null;
-
+                // Group episodes by week_id so all weeks render cleanly regardless of SQL row order
+                const weeksMap = new Map();
                 episodes.forEach(ep => {
-                    // Check if we have hit a new week batch
-                    if (ep.week_id !== currentWeek) {
-                        currentWeek = ep.week_id;
-
-                        // 1. Create the Master Wrapper Card for the week
-                        currentWrapper = document.createElement('div');
-                        currentWrapper.className = `week-wrapper wrapper-${ep.status}`;
-
-                        // 2. Create the Header
-                        const weekHeader = document.createElement('div');
-                        weekHeader.className = `week-header header-${ep.status}`;
-                        weekHeader.innerHTML = `
-                            <h2>🏴‍☠️ ${currentWeek}</h2>
-                            <div class="week-date">${ep.watch_date ? '📅 ' + ep.watch_date : '⏳ TBD'}</div>
-                        `;
-
-                        // 3. Create the inner container for the episodes
-                        weekContainer = document.createElement('div');
-                        weekContainer.className = 'week-container';
-
-                        // Assemble the pieces into the wrapper, then push it to the timeline
-                        currentWrapper.appendChild(weekHeader);
-                        currentWrapper.appendChild(weekContainer);
-                        timeline.appendChild(currentWrapper);
-                    }
-
-                    // Parse the JSON array of tags safely from the database
-                    let tagsHtml = '';
-                    try {
-                        const tagsArray = JSON.parse(ep.tags || '[]');
-                        tagsArray.forEach(tag => {
-                            // Creates CSS safe classes (e.g., "Mixed Canon" -> "mixed-canon")
-                            const safeClass = tag.toLowerCase().replace(/\s+/g, '-');
-                            tagsHtml += `<span class="ep-tag tag-${safeClass}">${tag}</span>`;
+                    if (!weeksMap.has(ep.week_id)) {
+                        weeksMap.set(ep.week_id, {
+                            status: ep.status,
+                            watch_date: ep.watch_date,
+                            episodes: []
                         });
-                    } catch(e) {
-                        console.error("Could not parse tags for episode " + ep.episode_number);
                     }
+                    weeksMap.get(ep.week_id).episodes.push(ep);
+                });
 
-                    // 4. Create the episode card
-                    const el = document.createElement('div');
-                    el.className = `episode-card`;
-                    el.innerHTML = `
-                        <div class="ep-num">Ep ${ep.episode_number}</div>
-                        <div class="ep-details">
-                            <h3>${ep.title || 'Unknown Title'}</h3>
-                            <div class="tag-container">
-                                ${tagsHtml}
-                            </div>
-                        </div>
+                weeksMap.forEach((weekData, weekId) => {
+                    // 1. Create the Master Wrapper Card for the week
+                    const currentWrapper = document.createElement('div');
+                    currentWrapper.className = `week-wrapper wrapper-${weekData.status}`;
+
+                    // 2. Create the Header
+                    const weekHeader = document.createElement('div');
+                    weekHeader.className = `week-header header-${weekData.status}`;
+                    weekHeader.innerHTML = `
+                        <h2>🏴‍☠️ ${weekId}</h2>
+                        <div class="week-date">${weekData.watch_date ? '📅 ' + weekData.watch_date : '⏳ TBD'}</div>
                     `;
 
-                    // Add the card to the current week's inner container
-                    weekContainer.appendChild(el);
+                    // 3. Create the inner container for the episodes
+                    const weekContainer = document.createElement('div');
+                    weekContainer.className = 'week-container';
+
+                    // 4. Create and append each episode card
+                    weekData.episodes.forEach(ep => {
+                        let tagsHtml = '';
+                        try {
+                            const tagsArray = JSON.parse(ep.tags || '[]');
+                            tagsArray.forEach(tag => {
+                                const safeClass = tag.toLowerCase().replace(/\s+/g, '-');
+                                tagsHtml += `<span class="ep-tag tag-${safeClass}">${tag}</span>`;
+                            });
+                        } catch (e) {
+                            console.error("Could not parse tags for episode " + ep.episode_number);
+                        }
+
+                        const el = document.createElement('div');
+                        el.className = 'episode-card';
+                        el.innerHTML = `
+                            <div class="ep-num">Ep ${ep.episode_number}</div>
+                            <div class="ep-details">
+                                <h3>${ep.title || 'Unknown Title'}</h3>
+                                <div class="tag-container">
+                                    ${tagsHtml}
+                                </div>
+                            </div>
+                        `;
+                        weekContainer.appendChild(el);
+                    });
+
+                    currentWrapper.appendChild(weekHeader);
+                    currentWrapper.appendChild(weekContainer);
+                    timeline.appendChild(currentWrapper);
                 });
             } catch (err) {
-                document.getElementById('timeline').innerHTML = '<p>Error loading schedule. Is the bot running?</p>';
+                console.error(err);
+                timeline.innerHTML = '<p>Error loading schedule. Is the bot running?</p>';
             }
         }
 
@@ -178,4 +102,3 @@
     </script>
 </body>
 </html>
-
