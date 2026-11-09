@@ -287,7 +287,13 @@ client.on(Events.InteractionCreate, async interaction => {
 app.use(express.static(path.join(__dirname, '../public')));
 
 app.get('/api/schedule', (req, res) => {
-    const episodes = db.prepare("SELECT * FROM episodes WHERE status IN ('planned', 'scheduled') ORDER BY episode_number ASC").all();
+    const includeWatched = req.query.includeWatched === 'true';
+
+    const query = includeWatched
+        ? "SELECT * FROM episodes WHERE status IN ('watched', 'planned', 'scheduled') ORDER BY episode_number ASC"
+        : "SELECT * FROM episodes WHERE status IN ('planned', 'scheduled') ORDER BY episode_number ASC";
+
+    const episodes = db.prepare(query).all();
     res.json(episodes);
 });
 

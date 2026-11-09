@@ -14,24 +14,38 @@
 </head>
 <body>
     <h1>🏴‍☠️ One Piece Watch Hub</h1>
+
+    <div class="controls">
+        <button id="toggle-watched" onclick="toggleWatched()">👁️ Show Watched Episodes</button>
+    </div>
+
     <div id="timeline">
         <p>Loading schedule...</p>
     </div>
 
     <script>
+        let showWatched = false;
+
+        function toggleWatched() {
+            showWatched = !showWatched;
+            const btn = document.getElementById('toggle-watched');
+            btn.textContent = showWatched ? '🙈 Hide Watched Episodes' : '👁️ Show Watched Episodes';
+            btn.classList.toggle('active', showWatched);
+            loadSchedule();
+        }
+
         async function loadSchedule() {
             const timeline = document.getElementById('timeline');
             try {
-                const res = await fetch('/api/schedule');
+                const res = await fetch(`/api/schedule?includeWatched=${showWatched}`);
                 const episodes = await res.json();
                 timeline.innerHTML = '';
 
                 if (!episodes || episodes.length === 0) {
-                    timeline.innerHTML = '<p>No episodes planned yet!</p>';
+                    timeline.innerHTML = '<p>No episodes found!</p>';
                     return;
                 }
 
-                // Group episodes by week_id so all weeks render cleanly regardless of SQL row order
                 const weeksMap = new Map();
                 episodes.forEach(ep => {
                     if (!weeksMap.has(ep.week_id)) {
@@ -45,11 +59,9 @@
                 });
 
                 weeksMap.forEach((weekData, weekId) => {
-                    // 1. Create the Master Wrapper Card for the week
                     const currentWrapper = document.createElement('div');
                     currentWrapper.className = `week-wrapper wrapper-${weekData.status}`;
 
-                    // 2. Create the Header
                     const weekHeader = document.createElement('div');
                     weekHeader.className = `week-header header-${weekData.status}`;
                     weekHeader.innerHTML = `
@@ -57,11 +69,9 @@
                         <div class="week-date">${weekData.watch_date ? '📅 ' + weekData.watch_date : '⏳ TBD'}</div>
                     `;
 
-                    // 3. Create the inner container for the episodes
                     const weekContainer = document.createElement('div');
                     weekContainer.className = 'week-container';
 
-                    // 4. Create and append each episode card
                     weekData.episodes.forEach(ep => {
                         let tagsHtml = '';
                         try {
@@ -75,7 +85,7 @@
                         }
 
                         const el = document.createElement('div');
-                        el.className = 'episode-card';
+                        el.className = `episode-card card-${ep.status}`;
                         el.innerHTML = `
                             <div class="ep-num">Ep ${ep.episode_number}</div>
                             <div class="ep-details">
