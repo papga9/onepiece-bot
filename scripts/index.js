@@ -49,12 +49,22 @@ async function executeSundayTransition() {
                 let drawDays = [];
 
             oldMessage.poll.answers.forEach(answer => {
-                if (answer.voteCount > maxVotes) {
-                    maxVotes = answer.voteCount;
-                    winningAnswer = answer.text;
-                    drawDays = [answer.text];
-                } else if (answer.voteCount === maxVotes) {
-                    drawDays.push(answer.text);
+                const dayPriority = ['Szerda', 'Kedd', 'Csütörtök', 'Hétfő', 'Péntek', 'Szombat', 'Vasárnap'];
+
+                // Only real days compete, not "Nézzünk többször" / "Most hagyjuk ki"
+                const dayAnswers = [...oldMessage.poll.answers.values()]
+                .filter(a => dayPriority.some(d => a.text.startsWith(d)));
+
+                const maxVotes = Math.max(0, ...dayAnswers.map(a => a.voteCount));
+                let winningAnswer = "No votes cast";
+
+                if (maxVotes > 0) {
+                    const tied = dayAnswers.filter(a => a.voteCount === maxVotes);
+                    tied.sort((a, b) => {
+                        const rank = ans => dayPriority.findIndex(d => ans.text.startsWith(d));
+                        return rank(a) - rank(b);
+                    });
+                    winningAnswer = tied[0].text;
                 }
             });
 
@@ -84,7 +94,7 @@ async function executeSundayTransition() {
     // PART 2: Create the New Poll
     const nextPlannedRow = db.prepare("SELECT week_id FROM episodes WHERE status = 'planned' ORDER BY episode_number ASC LIMIT 1").get();
 
-    if (nextPlannedRow) {
+    if (nextPlannedRow && winningAnswer !== "No votes cast") {
         const nextWeekName = nextPlannedRow.week_id;
 
         // --- DATE GENERATOR LOGIC ---
