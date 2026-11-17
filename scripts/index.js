@@ -44,46 +44,31 @@ async function executeSundayTransition() {
             // THE CACHE FIX: Force Discord to fetch the live message data, bypassing memory!
             const oldMessage = await channel.messages.fetch({ message: oldPollRow.value, force: true });
             if (oldMessage.poll) {
-                let winningAnswer = "No votes cast";
-                let maxVotes = 0;
-                let drawDays = [];
-
-            oldMessage.poll.answers.forEach(answer => {
+                // Tie-break order. Answers look like "Szerda (11.25.)", so we match on the start of the text.
                 const dayPriority = ['Szerda', 'Kedd', 'Csütörtök', 'Hétfő', 'Péntek', 'Szombat', 'Vasárnap'];
+                const rank = answer => dayPriority.findIndex(d => answer.text.startsWith(d));
 
                 // Only real days compete, not "Nézzünk többször" / "Most hagyjuk ki"
-                const dayAnswers = [...oldMessage.poll.answers.values()]
-                .filter(a => dayPriority.some(d => a.text.startsWith(d)));
+                const dayAnswers = [...oldMessage.poll.answers.values()].filter(a => rank(a) !== -1);
 
                 const maxVotes = Math.max(0, ...dayAnswers.map(a => a.voteCount));
-                let winningAnswer = "No votes cast";
 
-                if (maxVotes > 0) {
-                    const tied = dayAnswers.filter(a => a.voteCount === maxVotes);
-                    tied.sort((a, b) => {
-                        const rank = ans => dayPriority.findIndex(d => ans.text.startsWith(d));
-                        return rank(a) - rank(b);
-                    });
-                    winningAnswer = tied[0].text;
-                }
-            });
+                if (maxVotes === 0) {
+                    // Nobody voted for a day: leave the week as 'planned' so it gets polled again
+                    await channel.send(`${rolePing}Nem érkezett szavazat egyetlen napra sem, ezért a hét újra szavazásra kerül.`).catch(e => console.error("Failed to send no-votes message:", e));
+                } else {
+                    const tied = dayAnswers
+                    .filter(a => a.voteCount === maxVotes)
+                    .sort((a, b) => rank(a) - rank(b));
+                    const winningAnswer = tied[0].text;
 
-            if (drawDays.length > 1) {
-                const priorityOrder = ['Wednesday', 'Tuesday', 'Thursday', 'Monday', 'Friday', 'Saturday', 'Sunday'];
-                for (const day of priorityOrder) {
-                    if (drawDays.includes(day)) {
-                        winningAnswer = day;
-                        break;
+                    const plannedWeekRow = db.prepare("SELECT week_id FROM episodes WHERE status = 'planned' ORDER BY episode_number ASC LIMIT 1").get();
+
+                    if (plannedWeekRow) {
+                        db.prepare("UPDATE episodes SET watch_date = ?, status = 'scheduled' WHERE week_id = ? AND status = 'planned'").run(winningAnswer, plannedWeekRow.week_id);
+                        // PING THE ROLE FOR THE TALLY
+                        await channel.send(`${rolePing}A szavazatok beérkeztek! A következő időpont: **${winningAnswer}**!`).catch(e => console.error("Failed to send tally message:", e));
                     }
-                }
-            }
-
-                const plannedWeekRow = db.prepare("SELECT week_id FROM episodes WHERE status = 'planned' ORDER BY episode_number ASC LIMIT 1").get();
-
-                if (plannedWeekRow) {
-                    db.prepare("UPDATE episodes SET watch_date = ?, status = 'scheduled' WHERE week_id = ? AND status = 'planned'").run(winningAnswer, plannedWeekRow.week_id);
-                    // PING THE ROLE FOR THE TALLY
-                    await channel.send(`${rolePing}A szavazatok beérkeztek! A következő időpont: **${winningAnswer}**!`).catch(e => console.error("Failed to send tally message:", e));
                 }
             }
         } catch (err) {
@@ -94,7 +79,7 @@ async function executeSundayTransition() {
     // PART 2: Create the New Poll
     const nextPlannedRow = db.prepare("SELECT week_id FROM episodes WHERE status = 'planned' ORDER BY episode_number ASC LIMIT 1").get();
 
-    if (nextPlannedRow && winningAnswer !== "No votes cast") {
+    if (nextPlannedRow) {
         const nextWeekName = nextPlannedRow.week_id;
 
         // --- DATE GENERATOR LOGIC ---
@@ -128,14 +113,14 @@ async function executeSundayTransition() {
                     question: { text: "Melyik nap lenne jó?" },
                     answers: [
                         { text: `Hétfő (${getDateString(8)})`, emoji: getRandom(emojis.monday) },
-                        { text: `Kedd (${getDateString(9)})`, emoji: getRandom(emojis.tuesday) },
-                        { text: `Szerda (${getDateString(10)})`, emoji: getRandom(emojis.wednesday) },
-                        { text: `Csütörtök (${getDateString(11)})`, emoji: getRandom(emojis.thursday) },
-                        { text: `Péntek (${getDateString(12)})`, emoji: getRandom(emojis.friday) },
-                        { text: `Szombat (${getDateString(13)})`, emoji: getRandom(emojis.saturday) },
-                        { text: `Vasárnap (${getDateString(14)})`, emoji: getRandom(emojis.sunday) },
-                        { text: "Nézzünk többször", emoji: "📅" },
-                        { text: "Most hagyjuk ki", emoji: "🛌" }
+                                                      { text: `Kedd (${getDateString(9)})`, emoji: getRandom(emojis.tuesday) },
+                                                      { text: `Szerda (${getDateString(10)})`, emoji: getRandom(emojis.wednesday) },
+                                                      { text: `Csütörtök (${getDateString(11)})`, emoji: getRandom(emojis.thursday) },
+                                                      { text: `Péntek (${getDateString(12)})`, emoji: getRandom(emojis.friday) },
+                                                      { text: `Szombat (${getDateString(13)})`, emoji: getRandom(emojis.saturday) },
+                                                      { text: `Vasárnap (${getDateString(14)})`, emoji: getRandom(emojis.sunday) },
+                                                      { text: "Nézzünk többször", emoji: "📅" },
+                                                      { text: "Most hagyjuk ki", emoji: "🛌" }
                     ],
                     allowMultiselect: true,
                     duration: 168 // 7 days in hours
@@ -300,8 +285,8 @@ app.get('/api/schedule', (req, res) => {
     const includeWatched = req.query.includeWatched === 'true';
 
     const query = includeWatched
-        ? "SELECT * FROM episodes WHERE status IN ('watched', 'planned', 'scheduled') ORDER BY episode_number ASC"
-        : "SELECT * FROM episodes WHERE status IN ('planned', 'scheduled') ORDER BY episode_number ASC";
+    ? "SELECT * FROM episodes WHERE status IN ('watched', 'planned', 'scheduled') ORDER BY episode_number ASC"
+    : "SELECT * FROM episodes WHERE status IN ('planned', 'scheduled') ORDER BY episode_number ASC";
 
     const episodes = db.prepare(query).all();
     res.json(episodes);
